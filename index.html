@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>풍선껌 불기</title>
+<style>
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background: #fdf6f9;
+  }
+
+  .face {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    background: #ffe0e9;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  /* 눈 */
+  .eye {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    top: 40px;
+    overflow: hidden;
+  }
+  .eye.left { left: 40px; }
+  .eye.right { right: 40px; }
+  .pupil {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #333;
+    border-radius: 50%;
+    top: 5px;
+    left: 5px;
+    transition: transform 0.05s;
+  }
+
+  /* 입 */
+  .mouth {
+    position: absolute;
+    bottom: 40px;
+    width: 40px;
+    height: 20px;
+    background: #ff8fb1;
+    border-radius: 20px/10px;
+    z-index: 2;
+  }
+
+  /* 풍선껌 */
+  .bubble {
+    position: absolute;
+    bottom: 45px; 
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    background: pink;
+    border-radius: 50%;
+    transform: translateX(-50%) scale(0);
+    transform-origin: bottom center;
+    opacity: 0.8;
+    z-index: 1; 
+  }
+  .pop {
+    animation: pop 0.3s forwards;
+  }
+  @keyframes pop {
+    to { transform: translateX(-50%) scale(1.5); opacity: 0; }
+  }
+
+  /* 음악 버튼 */
+  .music-btn {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    padding: 10px 15px;
+    background: #ff8fb1;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: background 0.2s;
+  }
+  .music-btn:hover {
+    background: #ff6f9b;
+  }
+</style>
+</head>
+<body>
+<div class="face">
+  <div class="eye left"><div class="pupil"></div></div>
+  <div class="eye right"><div class="pupil"></div></div>
+  <div class="mouth"></div>
+  <div class="bubble"></div>
+</div>
+
+<!-- 오디오 -->
+<audio id="bgm" src="풍선껌노래.mp3" autoplay loop muted></audio>
+<button class="music-btn" id="musicToggle">⏸ 멈춤</button>
+
+<script>
+const face = document.querySelector('.face');
+const bubble = document.querySelector('.bubble');
+
+let bubbleSize = 0;
+let maxSize = 300;
+let growing = false;
+let animId = null;
+
+// 마우스 위치 감지
+let mouseX = 0, mouseY = 0;
+document.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+
+  const mouthRect = document.querySelector('.mouth').getBoundingClientRect();
+  const mouthX = mouthRect.left + mouthRect.width / 2;
+  const mouthY = mouthRect.top + mouthRect.height / 2;
+  const distance = Math.hypot(mouseX - mouthX, mouseY - mouthY);
+
+  growing = distance < 80;
+
+  // 눈동자 위치 업데이트
+  document.querySelectorAll('.eye').forEach((eye) => {
+    const pupil = eye.querySelector('.pupil');
+    const eyeRect = eye.getBoundingClientRect();
+    const eyeX = eyeRect.left + eyeRect.width / 2;
+    const eyeY = eyeRect.top + eyeRect.height / 2;
+    const dx = mouseX - eyeX;
+    const dy = mouseY - eyeY;
+    const angle = Math.atan2(dy, dx);
+    const r = 4;
+    pupil.style.transform = `translate(${r * Math.cos(angle)}px, ${r * Math.sin(angle)}px)`;
+  });
+});
+
+function animateBubble() {
+  if (growing) {
+    bubbleSize += 2;
+    if (bubbleSize >= maxSize) {
+      bubble.classList.add('pop');
+      setTimeout(() => {
+        bubble.classList.remove('pop');
+        bubbleSize = 0;
+        bubble.style.transform = 'translateX(-50%) scale(0)';
+      }, 300);
+    }
+  } else {
+    bubbleSize = Math.max(0, bubbleSize - 2);
+  }
+
+  if (!bubble.classList.contains('pop')) {
+    const scale = bubbleSize / 40; 
+    bubble.style.transform = `translateX(-50%) scale(${scale})`;
+    bubble.style.opacity = 0.8;
+  }
+
+  animId = requestAnimationFrame(animateBubble);
+}
+
+// 초기 실행
+animId = requestAnimationFrame(animateBubble);
+
+// face hover 제어
+face.addEventListener('mouseleave', () => {
+  cancelAnimationFrame(animId);
+  animId = null;
+});
+face.addEventListener('mouseenter', () => {
+  if (!animId) animId = requestAnimationFrame(animateBubble);
+});
+
+// 음악 제어
+const bgm = document.getElementById('bgm');
+const musicToggle = document.getElementById('musicToggle');
+
+// 페이지 로딩 시 자동재생 시도 (muted 상태)
+window.addEventListener('load', () => {
+  bgm.play().catch(err => console.log('자동재생 차단됨:', err));
+});
+
+// 버튼 클릭 시 음소거 해제 + 재생/일시정지 토글
+musicToggle.addEventListener('click', () => {
+  if (bgm.paused || bgm.muted) {
+    bgm.muted = false;  // 음소거 해제
+    bgm.play();
+    musicToggle.textContent = "⏸ 멈춤";
+  } else {
+    bgm.pause();
+    musicToggle.textContent = "▶ 재생";
+  }
+});
+</script>
+</body>
+</html>
