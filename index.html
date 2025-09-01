@@ -26,7 +26,6 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   }
 
-  /* 눈 */
   .eye {
     position: absolute;
     width: 20px;
@@ -49,7 +48,6 @@
     transition: transform 0.05s;
   }
 
-  /* 입 */
   .mouth {
     position: absolute;
     bottom: 40px;
@@ -135,7 +133,6 @@ document.addEventListener('mousemove', (e) => {
 
   growing = distance < 80;
 
-  // 눈동자 위치 업데이트
   document.querySelectorAll('.eye').forEach((eye) => {
     const pupil = eye.querySelector('.pupil');
     const eyeRect = eye.getBoundingClientRect();
